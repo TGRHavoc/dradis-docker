@@ -1,0 +1,10 @@
+version: "3.3"
+services:
+    dradis:
+        container_name: dradis
+        image: tgrhavoc/dradis-docker
+        #ports:
+            #-3000:3000
+        #environment:
+            #SECRET_KEY_BASE: some-super-secure-string-leave-empty-for-randomised-one
+
