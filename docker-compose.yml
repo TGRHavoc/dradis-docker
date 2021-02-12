@@ -5,9 +5,13 @@ services:
         image: tgrhavoc/dradis-docker
         #ports:
             #-3000:3000
+        depends_on:
+            - redis
         volumes:
             - "./dradis/dbdata/:/dbdata"
+            - "./dradis/templates:/dradis/templates"
+            - "./dradis/attachments:/dradis/attachments"
         environment:
             #SECRET_KEY_BASE: some-super-secure-string-leave-empty-for-randomised-one
             VIRTUAL_HOST: dradis.tgrhavoc.co.uk
-            REDIS_URL: redis://172.19.0.10:6379/cache
+            REDIS_URL: redis://redis:6379/cache
