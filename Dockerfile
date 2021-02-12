@@ -7,9 +7,6 @@ ENV DRADIS_VERSION=main \
 LABEL maintainer="Jordan Daton <jordan@tgrhavoc.co.uk>"
 LABEL dradis.version=$DRADIS_VERSION
 
-# Copy ENTRYPOINT script
-ADD docker-entrypoint.sh /entrypoint.sh
-
 # Install requirements
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive \
@@ -50,19 +47,21 @@ RUN rails db:prepare
 
 # setup should skip what we've already done
 RUN ruby bin/setup
+RUN cp /dbdata/* /dradis/db/
+#RUN ls -la /dradis/db
 # Precompile assets
-RUN npm install --global yarn && \ 
-	yarn --version && \
+RUN npm install --global yarn && \
 	bundle exec rake assets:precompile
 
-# Entrypoint:
-RUN chmod +x /entrypoint.sh
+# Might as well have all the plugins enabled!
+RUN sed -i '/gem/s/^# *//' Gemfile.plugins && \
+	bundle install
 
 # Create dradis user:
-RUN groupadd -r dradis && \
-    useradd -r -g dradis -d /dradis dradis && \
-    mkdir -p /dbdata && \
-    chown -R dradis:dradis /dradis/ /dbdata/
+#RUN groupadd -r dradis && \
+#    useradd -r -g dradis -d /dradis dradis && \
+#    mkdir -p /dbdata && \
+#    chown -R dradis:dradis /dradis/ /dbdata/
 
 # clean image
 RUN npm uninstall yarn
@@ -71,7 +70,6 @@ RUN DEBIAN_FRONTEND=noninteractive \
     apt-get remove -y --purge \
         build-essential \
         gcc \
-        git \
         libmariadbd-dev \
         libsqlite3-dev \
         make \
@@ -83,17 +81,26 @@ RUN DEBIAN_FRONTEND=noninteractive \
 
 RUN DEBIAN_FRONTEND=noninteractive \
     apt install $APT \
-        libmariadb3 \
         libsqlite3-0 \
         zlib1g
 
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get autoremove -y
 
-RUN rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/* && \
-    rm -rf /dbdata/development.sqlite3
+RUN rm -rf /var/cache/apt/archives/* \
+        /var/lib/apt/lists/* \
+        /dbdata/* \
+	/dradis/tmp/*
 
-VOLUME /dradis
+ADD docker-entrypoint.sh /entrypoint.sh
+ADD production.rb /dradis/config/environments/production.rb
+
+RUN mv templates templates_orig 
+
+RUN chmod +x /entrypoint.sh
+
+VOLUME /dradis/templates
+VOLUME /dradis/attachments
 VOLUME /dbdata
 
 EXPOSE 3000
